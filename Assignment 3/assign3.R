@@ -1,4 +1,5 @@
-setwd("~/Git_repos/time-series-analysis/Assignment 3")
+# setwd("~/Git_repos/time-series-analysis/Assignment 3")
+setwd("D:/DTU/time-series-analysis/Assignment 3")
 library(forecast)
 
 ######### 1-5 ############
@@ -45,13 +46,11 @@ acf(data$InflationRate.transform, na.action=na.pass)
 
 m1 <- arima(log(data$Denmark),
                                  order=c(0,1,1),
-                                 seasonal=list(order = c(0,1,1),period=4),
-                                 include.mean = TRUE)
+                                 seasonal=list(order = c(0,1,1),period=4))
 
 m2 <- arima(log(data$Denmark),
                                  order=c(0,1,1),
-                                 seasonal=list(order = c(1,0,1),period=4),
-                                 include.mean = TRUE)
+                                 seasonal=list(order = c(1,0,1),period=4))
 
 mean(model.Denmark.transform$residuals, na.rm=TRUE)
 acf(model.Denmark.transform$residuals, na.action=na.pass)
@@ -82,3 +81,35 @@ t.test(m1$residuals)
 
 ######## 5-
 
+
+x_reg <- subset(data, select = c(InterestRate, InflationRate))
+x_reg <- data.matrix(x_reg)
+x_reg[is.na(x_reg)] <- matrix(c(1.925, 8.04580152671754), ncol = 2, nrow = 4, byrow = T)
+
+x_reg <- (x_reg - mean(x_reg))/sd(x_reg)
+# x_reg[is.na(x_reg)] <- matrix(c(0, 0), ncol = 2, nrow = 4, byrow = T)
+
+transform_data1 <- diff(na.omit(log(data$Denmark)))
+transform_data <- diff(transform_data1, lag=4, differences=1)
+
+
+mInt <- arima(transform_data,
+             order=c(0,0,1),
+             seasonal=list(order = c(0,0,1),period=4),
+             xreg=x_reg[6:122,1:2])
+             
+output <- predict(mInt, n.ahead = 6, newxreg=x_reg[123:128,1:2])
+
+preds <- c(output$pred)
+
+plot_data <- c(transform_data, preds)
+
+plot_data <- diffinv(plot_data, lag=4, xi=transform_data1[1:4])
+plot_data <- diffinv(plot_data, lag=1, xi=na.omit(log(data$Denmark))[1])
+
+
+plot(data$Denmark, type="l")
+
+
+
+lines(exp(plot_data), col='red')
